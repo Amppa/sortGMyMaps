@@ -9,15 +9,23 @@ The first thought is to sort placemark coordinate by Latitude and Longitude
 (The second thought is grouping/clusting)
 
 ### Environment need
-python 3
+python 3.2+ (due to using iter() in ElementTree)
+
 
 ### Usage
-1. Export Google My Maps data to KML (not KMZ)
-2. Change KML file name as "input.kml" (There is a example file)
+1. Export GoogleMyMaps data to KML (not KMZ)
+2. Change KML file name as "input.kml" (There is an example file)
 3. Execute "sortGoogleMyMapsKml.py"
 4. It should generate "output.kml"
-5. Inport "output.kml" into Google My Maps new layer
+5. Import "output.kml" into GoogleMyMaps
+
 
 ### Notice
-1. This does not support multi layers yet.
-2. If you want to change the sorting order or reverse, you can edit function "sortPlaceByLatAndLong"
+
+1. Now it can handle layer(folder)
+
+2. If you want to change the sorting order or reversing Latitude,
+  you can edit function "sortPlaceByLatAndLong"
+
+3. Besides place point, now it can handle polygon object
+  But it only considers the first point(x,y) of polygon as its coordinate

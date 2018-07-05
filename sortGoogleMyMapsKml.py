@@ -14,7 +14,7 @@ ET.register_namespace('', namespace)
 def main():
 
 	print("This is a script to sort GoogleMyMaps placemark by Latitude and Longitude")
-	print("Please export GoogleMyMaps data to KML and rename as ", INPUT_FILE_NAME)
+	print("Please export GoogleMyMaps data to KML and rename as " + INPUT_FILE_NAME)
 	
 	tree = ET.parse(INPUT_FILE_NAME)
 	root = tree.getroot()
@@ -22,16 +22,12 @@ def main():
 	
 	doc = root.find("{%s}Document" % namespace)
 	
-	placeList = []
-	placemarkToList(doc, placeList)
-	#print(placeList)
-	#printDbNameAndCoord(placeList)
-	sortDb(placeList)
-	#print(" ==== after ==== ")
-	#printDbNameAndCoord(placeList)
-	
-	removePlacemarkElement(doc)
-	appendElementFromListToElementTree(placeList, doc)
+	folderExist = doc.find("{%s}Folder" % namespace)
+	if folderExist is None:
+		sortPlacemarkInFolder(doc)
+	else:
+		for folder in doc.findall("{%s}Folder" % namespace):
+			sortPlacemarkInFolder(folder)
 	
 	tree.write(OUTPUT_FILE_NAME, "UTF-8", xml_declaration=True)
 	print("All done")
@@ -51,12 +47,22 @@ def printAllPlacemarkName(elem):
 		name = placemark.find('{%s}name' % namespace).text
 		print(name)
 
+def sortPlacemarkInFolder(folder):
+	placeList = []
+	placemarkToList(folder, placeList)
+	#printDbNameAndCoord(placeList)
+	sortDb(placeList)
+	#print(" ==== after ==== ")
+	#printDbNameAndCoord(placeList)
+
+	removePlacemarkElement(folder)
+	appendElementFromListToElementTree(placeList, folder)
+
 def placemarkToList(elem, placeList):
 	for placemark in elem.findall("{%s}Placemark" % namespace):
 		name = placemark.find('{%s}name' % namespace).text
-		
-		point = placemark.find('{%s}Point' % namespace)
-		coord_str = point.find('{%s}coordinates' % namespace).text
+		for coordElmt in placemark.iter('{%s}coordinates' % namespace):
+			coord_str = coordElmt.text
 		
 		coord_str = coord_str.strip()	#remove space or CRLF
 		coord = coord_str.split(',')	#lat, long, alt = coord[0:3]
