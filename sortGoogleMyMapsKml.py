@@ -4,7 +4,7 @@ try:
 except ImportError:
 	import xml.etree.ElementTree as ET
 
-INPUT_FILE_NAME = "input.kml"
+INPUT_FILE_NAME = "input3.kml"
 OUTPUT_FILE_NAME = "output.kml"
 
 namespace = "http://www.opengis.net/kml/2.2"
@@ -13,82 +13,85 @@ ET.register_namespace('', namespace)
 
 def main():
 
-	print("This is a script to sort GoogleMyMaps placemark by Latitude and Longitude")
-	print("Please export GoogleMyMaps data to KML and rename as " + INPUT_FILE_NAME)
+	print("This is a tool to sort GoogleMyMaps's placemarks by thier coordinate")
+	print("This version only sort in each layer(folder), so it won't change the layer's struction.\n")
+	print("Please export GoogleMyMaps file to KML and rename as '" + INPUT_FILE_NAME + "'")
 	
 	tree = ET.parse(INPUT_FILE_NAME)
 	root = tree.getroot()
 	#namespace = tree.getroot().tag[1:].split("}")[0]
 	
 	doc = root.find("{%s}Document" % namespace)
-	
-	folderExist = doc.find("{%s}Folder" % namespace)
-	if folderExist is None:
-		sortPlacemarkInFolder(doc)
-	else:
-		for folder in doc.findall("{%s}Folder" % namespace):
-			sortPlacemarkInFolder(folder)
-	
+	sortPlacemarkOfAllFolder(doc)
+
 	tree.write(OUTPUT_FILE_NAME, "UTF-8", xml_declaration=True)
-	print("All done")
+	print("Output done, please import '" + OUTPUT_FILE_NAME + "' into GoogleMyMaps.")
 
 
-def printChildElemTag(root):
-	for elem in root:
-		print(elem.tag)
+def printChildElmtTag(root):
+	for elmt in root:
+		print(elmt.tag)
 
-def printElemDfs(root):
-	for elem in root.iter():
-		print(elem.tag, elem.attrib)
+def printElmtDfs(root):
+	for elmt in root.iter():
+		print(elmt.tag, elmt.attrib)
 
-
-def printAllPlacemarkName(elem):
-	for placemark in elem.findall("{%s}Placemark" % namespace):
+def printAllPlacemarkName(folder):
+	for placemark in folder.findall("{%s}Placemark" % namespace):
 		name = placemark.find('{%s}name' % namespace).text
 		print(name)
 
+def sortPlacemarkOfAllFolder(doc):
+
+	folderGroup = doc.findall("{%s}Folder" % namespace)
+	if folderGroup is None:
+		sortPlacemarkInFolder(doc)
+	else:
+		for folder in folderGroup:
+			sortPlacemarkInFolder(folder)
+			print('.', end='')
+
 def sortPlacemarkInFolder(folder):
-	placeList = []
-	placemarkToList(folder, placeList)
-	#printDbNameAndCoord(placeList)
-	sortDb(placeList)
+	placeDict = []
+	parserPlacemarkToDict(folder, placeDict)
+	#printNameAndCoord(placeDict)
+	sortDb(placeDict)
 	#print(" ==== after ==== ")
-	#printDbNameAndCoord(placeList)
+	#printNameAndCoord(placeDict)
 
-	removePlacemarkElement(folder)
-	appendElementFromListToElementTree(placeList, folder)
+	removePlacemarkElmt(folder)
+	appendPlacemarkElmt_fromDistToFolder(placeDict, folder)
 
-def placemarkToList(elem, placeList):
-	for placemark in elem.findall("{%s}Placemark" % namespace):
+def parserPlacemarkToDict(folder, placeDict):
+	for placemark in folder.findall("{%s}Placemark" % namespace):
 		name = placemark.find('{%s}name' % namespace).text
 		for coordElmt in placemark.iter('{%s}coordinates' % namespace):
 			coord_str = coordElmt.text
 		
 		coord_str = coord_str.strip()	#remove space or CRLF
-		coord = coord_str.split(',')	#lat, long, alt = coord[0:3]
-		coord_lat, coord_long = coord[0:2]
-		#print(name, coord_lat, coord_long)
+		coord = coord_str.split(',')	#Longitude, Latitude, alt = coord[0:3]
+		coord_long, coord_lat = coord[0:2]
 		
-		placeList.append((name, float(coord_lat), float(coord_long), placemark))
+		placeDict.append({'name':name, 'x':float(coord_long), 'y':float(coord_lat), 'elmt':placemark})
 
-def printDbNameAndCoord(placeList):
-	for placeNode in placeList:
-		print(placeNode[1], ", ", placeNode[2], ",\t", placeNode[0])	# Latitude, Longitude, name
+def printNameAndCoord(placeDict):
+	for p in placeDict:
+		print(p['x'], ", ", p['y'], ",\t", p['name'])
 
-# Latitude ========
-# Longitude |||||||
-def sortDb(placeList):
-	placeList.sort(key = lambda s:s[1])	# sort by Latitude
-	placeList.sort(key = lambda s:s[2])	# sort by Longitude
+# Latitude ======== y
+# Longitude ||||||| x
+def sortDb(placeDict):
+	placeDict.sort(key = lambda s:s['x'])
+	placeDict.sort(key = lambda s:s['y'])
 
 
-def removePlacemarkElement(elem):
-	for placemark in elem.findall("{%s}Placemark" % namespace):
-		elem.remove(placemark)
+def removePlacemarkElmt(folder):
+	for placemark in folder.findall("{%s}Placemark" % namespace):
+		folder.remove(placemark)
 
-def appendElementFromListToElementTree(myList, myElemTree):
+def appendPlacemarkElmt_fromDistToFolder(myList, folder):
 	for node in myList:
-		myElemTree.append(node[3])		# copy element
+		folder.append(node['elmt'])		# copy element
 
 if __name__ == "__main__":
 	main()
